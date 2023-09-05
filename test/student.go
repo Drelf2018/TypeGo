@@ -14,6 +14,8 @@ func (s Student) String() string {
 	return fmt.Sprintf("I am %v and my ID is %v.", s.Name, s.ID)
 }
 
+func (s *Student) Set(...any) {}
+
 func (s *Student) Reset() {
 	s.Name = "张三"
 	s.ID = 19260817

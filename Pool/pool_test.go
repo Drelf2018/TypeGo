@@ -8,7 +8,7 @@ import (
 )
 
 func TestPool(t *testing.T) {
-	pool := Pool.New(&test.Student{})
+	pool := Pool.New[test.Student](&test.Student{})
 	s1 := pool.Get()
 	t.Logf("s1: %v\n", s1)
 	s1.Name = "李四"
