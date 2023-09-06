@@ -1,20 +1,17 @@
 package Pool
 
-import (
-	"errors"
-	"reflect"
-	"sync"
-)
+import "sync"
 
 type Var interface {
+	New()
 	Set(...any)
 	Reset()
 }
 
-type None struct{}
-
-func (*None) Set(...any) {}
-func (*None) Reset()     {}
+type Pointer[S any] interface {
+	*S
+	Var
+}
 
 type TypePool[T Var] struct {
 	sync.Pool
@@ -26,18 +23,30 @@ func (p *TypePool[T]) Get(args ...any) T {
 	return t
 }
 
-func (p *TypePool[T]) Put(args ...T) {
-	for _, arg := range args {
-		arg.Reset()
-		p.Pool.Put(arg)
+func (p *TypePool[T]) Put(ts ...T) {
+	for _, t := range ts {
+		t.Reset()
+		p.Pool.Put(t)
 	}
 }
 
-var ErrType = errors.New("TypeError")
-
-func New[F any, T Var](t T) TypePool[T] {
-	if reflect.TypeOf(t) != reflect.TypeOf(new(F)) {
-		panic(ErrType)
+func New[S any, P Pointer[S]](_ P) TypePool[P] {
+	return TypePool[P]{
+		sync.Pool{
+			New: func() any {
+				t := new(S)
+				P.New(t)
+				return t
+			},
+		},
 	}
-	return TypePool[T]{sync.Pool{New: func() any { return new(F) }}}
 }
+
+// None is a null struct which implement Var(interface).
+//
+// You can composite it in your own struct so that you don't need to implement Var.
+type None struct{}
+
+func (n *None) New()       {}
+func (n *None) Set(...any) {}
+func (*None) Reset()       {}

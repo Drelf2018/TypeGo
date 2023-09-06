@@ -8,14 +8,17 @@ import (
 )
 
 func TestPool(t *testing.T) {
-	pool := Pool.New[test.Student](&test.Student{})
-	s1 := pool.Get()
+	pool := Pool.New(&test.Student{})
+
+	s1 := pool.Get("张三")
 	t.Logf("s1: %v\n", s1)
-	s1.Name = "李四"
-	t.Logf("s1: %v\n", s1)
+
 	pool.Put(s1)
-	s2 := pool.Get()
-	s3 := pool.Get()
+	t.Logf("s1: %v\n", s1)
+
+	s2 := pool.Get("李四")
 	t.Logf("s2: %v\n", s2)
+
+	s3 := pool.Get("王五")
 	t.Logf("s3: %v\n", s3)
 }
