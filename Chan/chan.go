@@ -10,10 +10,18 @@ func (c Chan[T]) List() (r []T) {
 	return
 }
 
+// After sending all your datas, you need to close(ch) manually.
+//
+// Or you can use Auto() which wiil run close(ch) automatic after f(ch) done.
 func New[T any](f func(chan T)) Chan[T] {
 	ch := make(chan T)
 	go f(ch)
 	return ch
+}
+
+// Run close(ch) automatic after f(ch) done.
+func Auto[T any](f func(chan T)) Chan[T] {
+	return New(func(ch chan T) { f(ch); close(ch) })
 }
 
 // A Range(start, stop[, step]) function like python range()
