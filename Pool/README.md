@@ -47,5 +47,5 @@ go test github.com/Drelf2018/TypeGo/Pool -v
     pool_test.go:23: s3: I am 王五 and my ID is 1.
 --- PASS: TestPool (0.00s)
 PASS
-ok      github.com/Drelf2018/TypeGo/Pool        0.028s
+ok      github.com/Drelf2018/TypeGo/Pool        0.025s
 ```

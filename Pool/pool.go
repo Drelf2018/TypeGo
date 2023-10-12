@@ -1,16 +1,14 @@
 package Pool
 
-import "sync"
+import (
+	"reflect"
+	"sync"
+)
 
 type Var interface {
 	New()
 	Set(...any)
 	Reset()
-}
-
-type Pointer[S any] interface {
-	*S
-	Var
 }
 
 type TypePool[T Var] struct {
@@ -30,16 +28,21 @@ func (p *TypePool[T]) Put(ts ...T) {
 	}
 }
 
-func New[S any, P Pointer[S]](_ P) TypePool[P] {
-	return TypePool[P]{
-		sync.Pool{
-			New: func() any {
-				t := new(S)
-				P.New(t)
-				return t
-			},
-		},
+func zero(typ reflect.Type) any {
+	if typ.Kind() == reflect.Ptr {
+		return reflect.New(typ.Elem()).Interface()
 	}
+	return reflect.Zero(typ).Interface()
+}
+
+func New[T Var](t T) (p TypePool[T]) {
+	typ := reflect.TypeOf(t)
+	p.New = func() any {
+		i := zero(typ).(T)
+		i.New()
+		return i
+	}
+	return
 }
 
 // None is a null struct which implement Var(interface).
