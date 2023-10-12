@@ -12,8 +12,8 @@ type Queue[T any] struct {
 	pop   chan any
 }
 
-func New[T any](items ...T) Queue[T] {
-	return Queue[T]{items: items}
+func New[T any](items ...T) *Queue[T] {
+	return &Queue[T]{items: items}
 }
 
 func (q *Queue[T]) IsEmpty() bool {
