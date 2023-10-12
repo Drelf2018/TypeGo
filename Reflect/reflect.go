@@ -35,10 +35,16 @@ func Type(typ reflect.Type) uintptr {
 }
 
 func Field(field reflect.StructField) uintptr {
+	if field.Type.Kind() == reflect.Ptr {
+		return Type(field.Type.Elem())
+	}
 	return Type(field.Type)
 }
 
 func fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
 	return Chan.Auto(func(c chan reflect.StructField) {
 		for i, l := 0, typ.NumField(); i < l; i++ {
 			c <- typ.Field(i)
@@ -72,6 +78,13 @@ func (vs Values[V]) Values() []V {
 	return result
 }
 
+func isStruct(typ reflect.Type) bool {
+	if typ.Kind() == reflect.Ptr {
+		typ = typ.Elem()
+	}
+	return typ.Kind() == reflect.Struct
+}
+
 type Reflect[V any] struct {
 	types map[uintptr]Values[V]
 	Parse func(self *Reflect[V], field reflect.StructField) V
@@ -85,35 +98,34 @@ func (r *Reflect[V]) Ptr(in uintptr) Values[V] {
 	return r.types[in]
 }
 
-func (r *Reflect[V]) get(typ reflect.Type) (v Values[V], err error) {
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
+func (r *Reflect[V]) get(typ reflect.Type, p uintptr) Values[V] {
+	if !isStruct(typ) {
+		return nil
 	}
-	if typ.Kind() != reflect.Struct {
-		return nil, ErrValue
+	if val, ok := r.types[p]; ok {
+		return val
 	}
-	v = make(Values[V], 0, typ.NumField())
+	r.types[p] = make(Values[V], 0, typ.NumField())
 	fields(typ).Do(func(field reflect.StructField) {
 		ptr := Field(field)
-		if fv, err := r.get(field.Type); err == nil {
+		if fv := r.get(field.Type, ptr); fv != nil {
 			r.types[ptr] = fv
 		}
-		v = append(v, Value[V]{ptr, r.Parse(r, field)})
+		r.types[p] = append(r.types[p], Value[V]{ptr, r.Parse(r, field)})
 	})
-	return
+	return r.types[p]
 }
 
-func (r *Reflect[V]) Get(in any) (v Values[V]) {
+func (r *Reflect[V]) Get(in any) Values[V] {
 	ptr := Ptr(in)
 	if val, ok := r.types[ptr]; ok {
 		return val
 	}
-	v, err := r.get(reflect.TypeOf(in))
-	if err != nil {
-		panic(err)
+	typ := reflect.TypeOf(in)
+	if !isStruct(typ) {
+		panic(ErrValue)
 	}
-	r.types[ptr] = v
-	return
+	return r.get(typ, ptr)
 }
 
 func New[V any](parse func(self *Reflect[V], field reflect.StructField) V) *Reflect[V] {

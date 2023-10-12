@@ -18,7 +18,11 @@ type Struct1 struct {
 		d4 float64 `ref:"19"`
 	} `ref:"810"`
 
-	D5 string `ref:"Reflect"`
+	D5 *Struct1 `ref:"Struct1"`
+
+	Struct4 struct {
+		d7 *Struct1 `ref:"Struct1"`
+	} `ref:"Struct4"`
 }
 
 func TestTag(t *testing.T) {
