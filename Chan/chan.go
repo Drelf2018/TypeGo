@@ -10,6 +10,12 @@ func (c Chan[T]) List() (r []T) {
 	return
 }
 
+func (c Chan[T]) Do(f func(T)) {
+	for v := range c {
+		f(v)
+	}
+}
+
 // After sending all your datas, you need to close(ch) manually.
 //
 // Or you can use Auto() which wiil run close(ch) automatic after f(ch) done.
