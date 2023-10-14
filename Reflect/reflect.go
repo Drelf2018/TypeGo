@@ -38,26 +38,18 @@ func Type(typ reflect.Type) uintptr {
 	return Ptr(reflect.Zero(typ).Interface())
 }
 
-func fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
-	}
-	return Chan.Auto(func(c chan reflect.StructField) {
-		for i, l := 0, typ.NumField(); i < l; i++ {
-			c <- typ.Field(i)
-		}
-	})
-}
-
-func Fields(v any) Chan.Chan[reflect.StructField] {
-	typ := reflect.TypeOf(v)
+func Fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
 	if typ.Kind() == reflect.Ptr {
 		typ = typ.Elem()
 	}
 	if typ.Kind() != reflect.Struct {
 		panic(ErrValue)
 	}
-	return fields(typ)
+	return Chan.Auto(func(c chan reflect.StructField) {
+		for i, l := 0, typ.NumField(); i < l; i++ {
+			c <- typ.Field(i)
+		}
+	})
 }
 
 type Reflect[V any] struct {
@@ -95,7 +87,7 @@ func (r *Reflect[V]) GetType(elem reflect.Type, v *[]V) bool {
 	}
 	r.types[ue] = make([]V, 0)
 	values := make([]V, 0, elem.NumField())
-	fields(elem).Do(func(field reflect.StructField) {
+	Fields(elem).Do(func(field reflect.StructField) {
 		values = append(values, r.Parse(r, field))
 	})
 	r.types[ue] = values
