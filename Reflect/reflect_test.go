@@ -19,16 +19,17 @@ type Struct1 struct {
 	} `ref:"810"`
 
 	D5 *Struct1 `ref:"Struct1"`
+	D6 string
 
 	Struct4 struct {
-		d7 *Struct1 `ref:"Struct1"`
+		d7 *Struct1 `ref:"Struct7"`
 	} `ref:"Struct4"`
 }
 
 func TestTag(t *testing.T) {
 	tag := Reflect.NewTagStruct("ref")
-	v := tag.Get(Struct1{})
+	v := tag.Get(&Struct1{})
 	for idx, val := range v {
-		fmt.Printf("#%d: {Ptr: %v, Val: %v}\n  val.Ptr: %v\n", idx, val.Ptr, val.Val, tag.Ptr(val.Ptr))
+		fmt.Printf("#%d: %v\n", idx, val)
 	}
 }
