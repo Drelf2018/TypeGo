@@ -10,12 +10,6 @@ func (c Chan[T]) List() (r []T) {
 	return
 }
 
-func (c Chan[T]) Do(f func(T)) {
-	for v := range c {
-		f(v)
-	}
-}
-
 // After sending all your datas, you need to close(ch) manually.
 //
 // Or you can use Auto() which wiil run close(ch) automatic after f(ch) done.
@@ -27,7 +21,10 @@ func New[T any](f func(ch chan T)) Chan[T] {
 
 // Run close(ch) automatic after f(ch) done.
 func Auto[T any](f func(ch chan T)) Chan[T] {
-	return New(func(ch chan T) { f(ch); close(ch) })
+	return New(func(ch chan T) {
+		defer close(ch)
+		f(ch)
+	})
 }
 
 // A Range(start, stop[, step]) function like python range()
@@ -54,17 +51,8 @@ func Range[T int | int64 | float64](stop T, options ...T) Chan[T] {
 
 func Slice[T any](s []T) Chan[T] {
 	return New(func(c chan T) {
-		for _, t := range s {
-			c <- t
-		}
-		close(c)
-	})
-}
-
-func Keys[M ~map[K]V, K comparable, V any](m M) Chan[K] {
-	return New(func(c chan K) {
-		for k := range m {
-			c <- k
+		for i, l := 0, len(s); i < l; i++ {
+			c <- s[i]
 		}
 		close(c)
 	})

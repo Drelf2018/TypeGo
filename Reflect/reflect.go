@@ -54,7 +54,7 @@ func Fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
 
 type Reflect[V any] struct {
 	types map[uintptr][]V
-	Parse func(self *Reflect[V], field reflect.StructField) V
+	Parse func(self *Reflect[V], field reflect.StructField, elem reflect.Type) V
 }
 
 func (r *Reflect[V]) Clear() {
@@ -86,13 +86,12 @@ func (r *Reflect[V]) GetType(elem reflect.Type, v *[]V) bool {
 		return true
 	}
 	r.types[ue] = make([]V, 0)
-	values := make([]V, 0, elem.NumField())
-	Fields(elem).Do(func(field reflect.StructField) {
-		values = append(values, r.Parse(r, field))
-	})
-	r.types[ue] = values
-	r.types[Addr(elem)] = values
-	return r.Ptr(ue, v)
+	for field := range Fields(elem) {
+		*v = append(*v, r.Parse(r, field, elem))
+	}
+	r.types[ue] = *v
+	r.types[Addr(elem)] = *v
+	return true
 }
 
 func (r *Reflect[V]) Get(in any) (v []V) {
@@ -102,7 +101,7 @@ func (r *Reflect[V]) Get(in any) (v []V) {
 	panic(ErrValue)
 }
 
-func New[V any](parse func(self *Reflect[V], field reflect.StructField) V) *Reflect[V] {
+func New[V any](parse func(self *Reflect[V], field reflect.StructField, elem reflect.Type) V) *Reflect[V] {
 	return &Reflect[V]{
 		types: make(map[uintptr][]V),
 		Parse: parse,
@@ -110,7 +109,7 @@ func New[V any](parse func(self *Reflect[V], field reflect.StructField) V) *Refl
 }
 
 func NewTag(tag string) *Reflect[string] {
-	return New(func(self *Reflect[string], field reflect.StructField) string {
+	return New(func(self *Reflect[string], field reflect.StructField, elem reflect.Type) string {
 		return field.Tag.Get(tag)
 	})
 }
@@ -143,7 +142,7 @@ func (t Tags) String() string {
 }
 
 func NewTagStruct(tag string) *Reflect[Tag] {
-	return New(func(self *Reflect[Tag], field reflect.StructField) (t Tag) {
+	return New(func(self *Reflect[Tag], field reflect.StructField, elem reflect.Type) (t Tag) {
 		t.Tag = field.Tag.Get(tag)
 		self.GetType(field.Type, &t.Fields)
 		return

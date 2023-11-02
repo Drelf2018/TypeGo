@@ -32,10 +32,6 @@ func TestMap(t *testing.T) {
 		"Bob":   2,
 		"Carol": 3,
 	}
-	for k := range Chan.Keys(m) {
-		print(k, " ")
-	}
-	println()
 	for v := range Chan.Values(m) {
 		print(v, " ")
 	}
@@ -70,5 +66,5 @@ func TestRange(t *testing.T) {
 
 	// >>> range(1, 0)
 	// []
-	fmt.Printf("Chan.Range(0).List(): %v\n", Chan.Range(1, 0).List())
+	fmt.Printf("Chan.Range(1, 0).List(): %v\n", Chan.Range(1, 0).List())
 }

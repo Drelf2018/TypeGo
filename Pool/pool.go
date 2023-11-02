@@ -11,17 +11,17 @@ type Var interface {
 	Reset()
 }
 
-type TypePool[T Var] struct {
+type Pool[T Var] struct {
 	sync.Pool
 }
 
-func (p *TypePool[T]) Get(args ...any) T {
+func (p *Pool[T]) Get(args ...any) T {
 	t := p.Pool.Get().(T)
 	t.Set(args...)
 	return t
 }
 
-func (p *TypePool[T]) Put(ts ...T) {
+func (p *Pool[T]) Put(ts ...T) {
 	for _, t := range ts {
 		t.Reset()
 		p.Pool.Put(t)
@@ -35,7 +35,7 @@ func zero(typ reflect.Type) any {
 	return reflect.Zero(typ).Interface()
 }
 
-func New[T Var](t T) (p TypePool[T]) {
+func New[T Var](t T) (p Pool[T]) {
 	typ := reflect.TypeOf(t)
 	p.New = func() any {
 		i := zero(typ).(T)
