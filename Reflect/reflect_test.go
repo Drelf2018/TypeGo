@@ -27,8 +27,8 @@ type Struct1 struct {
 }
 
 func TestTag(t *testing.T) {
-	tag := Reflect.NewTagStruct("ref")
-	v := tag.Get(&Struct1{})
+	tag := Reflect.NewTagStruct("ref", Reflect.WithSlice[Reflect.Tag](Struct1{}))
+	v := tag.Get(&[]Struct1{})
 	for idx, val := range v {
 		fmt.Printf("#%d: %v\n", idx, val)
 	}

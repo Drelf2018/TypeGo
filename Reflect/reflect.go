@@ -54,6 +54,7 @@ func Fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
 
 type Reflect[V any] struct {
 	types map[uintptr][]V
+	Alias func(elem reflect.Type) []uintptr
 	Parse func(self *Reflect[V], field reflect.StructField, elem reflect.Type) V
 }
 
@@ -86,12 +87,21 @@ func (r *Reflect[V]) GetType(elem reflect.Type, v *[]V) bool {
 		return true
 	}
 	r.types[ue] = make([]V, 0)
+	values := make([]V, 0, elem.NumField())
 	for field := range Fields(elem) {
-		*v = append(*v, r.Parse(r, field, elem))
+		values = append(values, r.Parse(r, field, elem))
 	}
-	r.types[ue] = *v
-	r.types[Addr(elem)] = *v
-	return true
+	r.types[ue] = values
+	for _, u := range r.Alias(elem) {
+		r.types[u] = values
+	}
+	return r.Ptr(ue, v)
+}
+
+func (r *Reflect[V]) Init(in ...any) {
+	for _, i := range in {
+		r.GetType(reflect.TypeOf(i), nil)
+	}
 }
 
 func (r *Reflect[V]) Get(in any) (v []V) {
@@ -101,17 +111,51 @@ func (r *Reflect[V]) Get(in any) (v []V) {
 	panic(ErrValue)
 }
 
-func New[V any](parse func(self *Reflect[V], field reflect.StructField, elem reflect.Type) V) *Reflect[V] {
-	return &Reflect[V]{
-		types: make(map[uintptr][]V),
-		Parse: parse,
+func Pointer(elem reflect.Type) []uintptr {
+	return []uintptr{
+		Addr(elem),
 	}
 }
 
-func NewTag(tag string) *Reflect[string] {
+func Slice(elem reflect.Type) []uintptr {
+	return []uintptr{
+		Addr(elem),
+		Type(reflect.SliceOf(elem)),
+		Addr(reflect.SliceOf(elem)),
+	}
+}
+
+type Option[V any] func(*Reflect[V])
+
+func WithAlias[V any](f func(elem reflect.Type) []uintptr) Option[V] {
+	return func(r *Reflect[V]) {
+		r.Alias = f
+	}
+}
+
+func WithSlice[V any](in ...any) Option[V] {
+	return func(r *Reflect[V]) {
+		r.Alias = Slice
+		r.Init(in...)
+	}
+}
+
+func New[V any](parse func(self *Reflect[V], field reflect.StructField, elem reflect.Type) V, options ...Option[V]) (r *Reflect[V]) {
+	r = &Reflect[V]{
+		types: make(map[uintptr][]V),
+		Alias: Pointer,
+		Parse: parse,
+	}
+	for _, op := range options {
+		op(r)
+	}
+	return
+}
+
+func NewTag(tag string, options ...Option[string]) *Reflect[string] {
 	return New(func(self *Reflect[string], field reflect.StructField, elem reflect.Type) string {
 		return field.Tag.Get(tag)
-	})
+	}, options...)
 }
 
 type Tag struct {
@@ -141,10 +185,10 @@ func (t Tags) String() string {
 	return buf.String()
 }
 
-func NewTagStruct(tag string) *Reflect[Tag] {
+func NewTagStruct(tag string, options ...Option[Tag]) *Reflect[Tag] {
 	return New(func(self *Reflect[Tag], field reflect.StructField, elem reflect.Type) (t Tag) {
 		t.Tag = field.Tag.Get(tag)
 		self.GetType(field.Type, &t.Fields)
 		return
-	})
+	}, options...)
 }
