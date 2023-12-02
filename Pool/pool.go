@@ -1,55 +1,55 @@
 package Pool
 
 import (
-	"reflect"
 	"sync"
 )
 
-type Var interface {
-	New()
-	Set(...any)
-	Reset()
+type Var[T any] interface {
+	OnNew()
+	OnGet(...any)
+	OnPut()
+	~*T
 }
 
-type Pool[T Var] struct {
+type Pool[T any, PT Var[T]] struct {
+	len int
+	cap int
 	sync.Pool
 }
 
-func (p *Pool[T]) Get(args ...any) T {
-	t := p.Pool.Get().(T)
-	t.Set(args...)
-	return t
-}
-
-func (p *Pool[T]) Put(ts ...T) {
-	for _, t := range ts {
-		t.Reset()
-		p.Pool.Put(t)
-	}
-}
-
-func zero(typ reflect.Type) any {
-	if typ.Kind() == reflect.Ptr {
-		return reflect.New(typ.Elem()).Interface()
-	}
-	return reflect.Zero(typ).Interface()
-}
-
-func New[T Var](t T) (p Pool[T]) {
-	typ := reflect.TypeOf(t)
-	p.New = func() any {
-		i := zero(typ).(T)
-		i.New()
-		return i
-	}
+func (p *Pool[T, PT]) Get(args ...any) (pt PT) {
+	pt = p.Pool.Get().(PT)
+	pt.OnGet(args...)
+	p.len++
 	return
 }
 
-// None is a null struct which implement Var(interface).
-//
-// You can composite it in your own struct so that you don't need to implement Var.
-type None struct{}
+func (p *Pool[T, PT]) Put(pt ...PT) {
+	for _, v := range pt {
+		if v == nil {
+			continue
+		}
+		v.OnPut()
+		p.Pool.Put(v)
+		p.len--
+	}
+}
 
-func (n *None) New()       {}
-func (n *None) Set(...any) {}
-func (*None) Reset()       {}
+func (p *Pool[T, PT]) Len() int {
+	return p.len
+}
+
+func (p *Pool[T, PT]) Cap() int {
+	return p.cap
+}
+
+func New[T any, PT Var[T]](_ ...PT) *Pool[T, PT] {
+	p := new(Pool[T, PT])
+	p.New = func() any {
+		var v PT = new(T)
+		v.OnNew()
+		p.cap++
+		return v
+	}
+	return p
+}

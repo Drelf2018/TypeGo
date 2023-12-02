@@ -5,14 +5,44 @@ import (
 	"testing"
 
 	"github.com/Drelf2018/TypeGo/Chan"
-	"github.com/Drelf2018/TypeGo/test"
 )
 
+type Student struct {
+	Name string
+	ID   int64
+}
+
+func (s Student) String() string {
+	if s.Name == "" {
+		return "I don't have a NAME!"
+	}
+	return fmt.Sprintf("I am %v and my ID is %v.", s.Name, s.ID)
+}
+
+func (s Student) Introduce() {
+	fmt.Println(s.String())
+}
+
+type Class struct {
+	Students []Student
+}
+
+func (c *Class) Join(s Student) {
+	c.Students = append(c.Students, s)
+}
+
+func (c Class) Call(ch chan Student) {
+	for _, s := range c.Students {
+		ch <- s
+	}
+	close(ch)
+}
+
 func TestChan(t *testing.T) {
-	class := test.Class{}
-	class.Join(test.Student{Name: "张三", ID: 1})
-	class.Join(test.Student{Name: "李四", ID: 2})
-	class.Join(test.Student{Name: "王五", ID: 3})
+	class := Class{}
+	class.Join(Student{Name: "张三", ID: 1})
+	class.Join(Student{Name: "李四", ID: 2})
+	class.Join(Student{Name: "王五", ID: 3})
 
 	for s := range Chan.New(class.Call) {
 		s.Introduce()

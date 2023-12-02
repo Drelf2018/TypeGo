@@ -125,6 +125,14 @@ func Slice(elem reflect.Type) []uintptr {
 	}
 }
 
+func SlicePtr(elem reflect.Type) []uintptr {
+	return []uintptr{
+		Addr(elem),
+		Addr(reflect.SliceOf(elem)),
+		Addr(reflect.SliceOf(reflect.PtrTo(elem))),
+	}
+}
+
 type Option[V any] func(*Reflect[V])
 
 func WithAlias[V any](f func(elem reflect.Type) []uintptr) Option[V] {
