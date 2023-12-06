@@ -2,7 +2,6 @@ package Reflect
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"reflect"
 	"unsafe"
@@ -10,9 +9,17 @@ import (
 	"github.com/Drelf2018/TypeGo/Chan"
 )
 
-var ErrValue = errors.New("you should pass in a struct or a pointer to a struct")
+type ErrValue struct {
+	in any
+}
 
-// 反射加速 参考: https://www.cnblogs.com/cheyunhua/p/16642488.html
+func (e ErrValue) Error() string {
+	return fmt.Sprintf("you need to pass in (a pointer to) a struct instead of %#v", e.in)
+}
+
+// 反射加速
+//
+// 参考: https://www.cnblogs.com/cheyunhua/p/16642488.html
 type eface struct {
 	Type  unsafe.Pointer
 	Value unsafe.Pointer
@@ -38,18 +45,33 @@ func Type(typ reflect.Type) uintptr {
 	return Ptr(reflect.Zero(typ).Interface())
 }
 
-func Fields(typ reflect.Type) Chan.Chan[reflect.StructField] {
-	if typ.Kind() == reflect.Ptr {
-		typ = typ.Elem()
+func Fields(elem reflect.Type) Chan.Chan[reflect.StructField] {
+	if elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
 	}
-	if typ.Kind() != reflect.Struct {
-		panic(ErrValue)
+	if elem.Kind() != reflect.Struct {
+		panic(ErrValue{elem})
 	}
 	return Chan.Auto(func(c chan reflect.StructField) {
-		for i, l := 0, typ.NumField(); i < l; i++ {
-			c <- typ.Field(i)
+		for i, l := 0, elem.NumField(); i < l; i++ {
+			c <- elem.Field(i)
 		}
 	})
+}
+
+func FieldOf(elem reflect.Type) []reflect.StructField {
+	if elem.Kind() == reflect.Ptr {
+		elem = elem.Elem()
+	}
+	if elem.Kind() != reflect.Struct {
+		panic(ErrValue{elem})
+	}
+	l := elem.NumField()
+	r := make([]reflect.StructField, 0, l)
+	for i := 0; i < l; i++ {
+		r = append(r, elem.Field(i))
+	}
+	return r
 }
 
 type Reflect[V any] struct {
@@ -108,7 +130,7 @@ func (r *Reflect[V]) Get(in any) (v []V) {
 	if r.ptr(in, &v) || r.GetType(reflect.TypeOf(in), &v) {
 		return
 	}
-	panic(ErrValue)
+	panic(ErrValue{in})
 }
 
 func Pointer(elem reflect.Type) []uintptr {
