@@ -74,6 +74,30 @@ func FieldOf(elem reflect.Type) []reflect.StructField {
 	return r
 }
 
+func MethodOf(value reflect.Value) map[reflect.Method]reflect.Value {
+	if value.Kind() != reflect.Struct && (value.Kind() != reflect.Ptr || value.Elem().Kind() != reflect.Struct) {
+		panic(ErrValue{value})
+	}
+	elem := value.Type()
+	r := make(map[reflect.Method]reflect.Value)
+	for i := elem.NumMethod() - 1; i >= 0; i-- {
+		r[elem.Method(i)] = value.Method(i)
+	}
+	return r
+}
+
+func MethodFuncOf(value reflect.Value) map[string]any {
+	if value.Kind() != reflect.Struct && (value.Kind() != reflect.Ptr || value.Elem().Kind() != reflect.Struct) {
+		panic(ErrValue{value})
+	}
+	elem := value.Type()
+	r := make(map[string]any)
+	for i := elem.NumMethod() - 1; i >= 0; i-- {
+		r[elem.Method(i).Name] = value.Method(i).Interface()
+	}
+	return r
+}
+
 type Reflect[V any] struct {
 	types map[uintptr][]V
 	Alias func(elem reflect.Type) []uintptr

@@ -2,6 +2,7 @@ package Reflect_test
 
 import (
 	"fmt"
+	"reflect"
 	"testing"
 
 	"github.com/Drelf2018/TypeGo/Reflect"
@@ -24,6 +25,25 @@ type Struct1 struct {
 	Struct4 struct {
 		d7 *Struct1 `ref:"Struct7"`
 	} `ref:"Struct4"`
+}
+
+func (*Struct1) Test1(int)   {}
+func (Struct1) Test2(string) {}
+func (*Struct1) Test3(bool)  {}
+func (Struct1) Test4(a, b int) float64 {
+	return float64(a + b)
+}
+
+func TestMethod(t *testing.T) {
+	s := reflect.ValueOf(Struct1{})
+	for name, fn := range Reflect.MethodFuncOf(s) {
+		switch fn.(type) {
+		case func(string):
+			fmt.Printf("string: %v\n", name)
+		case func(int, int) float64:
+			fmt.Printf("float64: %v\n", name)
+		}
+	}
 }
 
 func TestTag(t *testing.T) {
