@@ -22,6 +22,10 @@ func (v Value) CallAnySlice(in ...any) []reflect.Value {
 	return v.Value.CallSlice(ValuesOf(in...))
 }
 
+func ValueOf(i any) Value {
+	return Value{reflect.ValueOf(i)}
+}
+
 func ValuesOf(in ...any) []reflect.Value {
 	val := make([]reflect.Value, 0, len(in))
 	for _, i := range in {
