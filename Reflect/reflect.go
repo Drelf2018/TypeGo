@@ -46,6 +46,12 @@ func Type(typ reflect.Type) uintptr {
 	return Ptr(reflect.Zero(typ).Interface())
 }
 
+// Zero returns a Value representing the zero value for the specified type.
+// The result is addressable and settable.
+func Zero(typ reflect.Type) reflect.Value {
+	return reflect.New(typ).Elem()
+}
+
 func Fields(elem reflect.Type) Chan.Chan[reflect.StructField] {
 	if elem.Kind() == reflect.Ptr {
 		elem = elem.Elem()
@@ -77,8 +83,7 @@ func FieldOf(elem reflect.Type) []reflect.StructField {
 }
 
 func MethodOf(value reflect.Value) map[reflect.Method]reflect.Value {
-	if value.Kind() != reflect.Struct && (value.Kind() != reflect.Ptr || value.Elem().Kind() != reflect.Struct) {
-		// panic(ErrValue{value})
+	if value.Kind() == reflect.Interface && value.IsNil() {
 		return nil
 	}
 	elem := value.Type()
@@ -90,8 +95,7 @@ func MethodOf(value reflect.Value) map[reflect.Method]reflect.Value {
 }
 
 func MethodFuncOf(value reflect.Value) map[string]any {
-	if value.Kind() != reflect.Struct && (value.Kind() != reflect.Ptr || value.Elem().Kind() != reflect.Struct) {
-		// panic(ErrValue{value})
+	if value.Kind() == reflect.Interface && value.IsNil() {
 		return nil
 	}
 	elem := value.Type()
